@@ -1,0 +1,11 @@
+C:\code\ops_build\InlineEdit\InlineEdit\bin\Debug\netcoreapp2.1\InlineEdit.deps.json
+C:\code\ops_build\InlineEdit\InlineEdit\bin\Debug\netcoreapp2.1\InlineEdit.runtimeconfig.json
+C:\code\ops_build\InlineEdit\InlineEdit\bin\Debug\netcoreapp2.1\InlineEdit.runtimeconfig.dev.json
+C:\code\ops_build\InlineEdit\InlineEdit\bin\Debug\netcoreapp2.1\InlineEdit.dll
+C:\code\ops_build\InlineEdit\InlineEdit\bin\Debug\netcoreapp2.1\InlineEdit.pdb
+C:\code\ops_build\InlineEdit\InlineEdit\obj\Debug\netcoreapp2.1\InlineEdit.csprojAssemblyReference.cache
+C:\code\ops_build\InlineEdit\InlineEdit\obj\Debug\netcoreapp2.1\InlineEdit.csproj.CoreCompileInputs.cache
+C:\code\ops_build\InlineEdit\InlineEdit\obj\Debug\netcoreapp2.1\InlineEdit.AssemblyInfoInputs.cache
+C:\code\ops_build\InlineEdit\InlineEdit\obj\Debug\netcoreapp2.1\InlineEdit.AssemblyInfo.cs
+C:\code\ops_build\InlineEdit\InlineEdit\obj\Debug\netcoreapp2.1\InlineEdit.dll
+C:\code\ops_build\InlineEdit\InlineEdit\obj\Debug\netcoreapp2.1\InlineEdit.pdb
