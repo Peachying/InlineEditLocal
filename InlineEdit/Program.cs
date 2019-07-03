@@ -12,17 +12,45 @@ using System.Net;
 
 namespace InlineEdit
 {
+    public class CreateTreeRequest {
+        [JsonProperty("base_tree")]
+        public string BaseTree { get; set; }
+        [JsonProperty("tree")]
+        public TreeNode[] Tree { get; set; }
+    }
+
+    public class TreeNode {
+        [JsonProperty("path")]
+        public string Path { get; set; }
+        [JsonProperty("mode")]
+        public string Mode { get; set; }
+        [JsonProperty("type")]
+        public string Type { get; set; }
+        [JsonProperty("sha")]
+        public string Sha { get; set; }
+    }
+
+    public class CreatePullRequest {
+        [JsonProperty("title")]
+        public string Title { get; set; }
+        [JsonProperty("head")]
+        public string Head { get; set; }
+        [JsonProperty("base")]
+        public string Base { get; set; }
+    }
     class Program
     {
         private static string path = @"C:\Users\t-yucxu\Desktop\testInlineEdit\middlefile";
-
+        private static string sourceFile = path + @"\origin.md";
+        
         private static string url_fork = @"https://api.github.com/repos/Peachying/testinlineedit/forks";
         private static string url_getRef = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/refs/heads/master";
-        private static string url_createBlob = @"https://api.github.com/repos/GraceXu96/tesinlineefit/git/blobs";
-        private static string url_craeteTree = @"https://api.github.com/repos/GraceXu96/tesinlineedit/git/trees";
-        private static string url_getCommit = @"https://api.github.com/repos/GraceXu96/testinlineedit/commits";
-        private static string url_createCommit = @"https://api.github.com/repos/GraceXu96/testinlineedit/inlineedit/git/commits";
-        private static string url_updateRef = @"https://api.github.com/repos/GraceXu96/git/refs/heads/master";
+        private static string url_createBlob = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/blobs";
+        private static string url_createTree = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/trees";
+        private static string url_getCommit = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/commits/";
+        private static string url_createCommit = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/commits";
+        private static string url_updateRef = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/refs/heads/master";
+        private static string url_pullRequest = @"https://api.github.com/repos/GraceXu96/testinlineedit/pulls";
 
         static async Task Main(string[] args)
         {
@@ -70,7 +98,6 @@ namespace InlineEdit
             int fileNum = 0;
             foreach (Object info in infoArray)
             {
-                string sourceFile = path + @"\origin.md";
                 string fragFile = path + @"\frag_" + fileNum + @".md";
                 fileNum += 1;
                 JObject fragInfo = (JObject)info;
@@ -108,21 +135,73 @@ namespace InlineEdit
 
         public static void PullRequest()
         {
-            Console.WriteLine("******************ResponseBody of commit***************************");
-            string res = Post(url_fork, "");
-            //string commitBody = @""
-            //string res_commit = Post(url_commit, );
-            //JObject ref_json = JObject.Parse(Get(url_getRef, new Dictionary<string, string>()));
-            //JToken sha = ref_json["object"]["sha"];
-
-            Console.WriteLine(res);
+            CreatePullRequest pullRequestBody = new CreatePullRequest
+            {
+                Title = "test PR with Github API",
+                Head = "master",
+                Base = "master"
+            };
+            string reqBody = JsonConvert.SerializeObject(pullRequestBody);
+            string pr_res = JObject.Parse(Post(url_pullRequest, reqBody)).ToString();
+            Console.WriteLine(pr_res);
         }
 
         public static void Commit(string blob, string path)
         {
-            //var commitSha, commitTreeSSha;
-            //commitSha = Get(url_getRef, )
+            Console.WriteLine("******************Six steps for Commit***************************");
+            string parent_sha = JObject.Parse(Get(url_getRef, new Dictionary<string, string>()))["object"]["sha"].ToString();
+            string baseTree_sha = JObject.Parse(Get(url_getCommit + parent_sha, new Dictionary<string, string>()))["tree"]["sha"].ToString();
 
+            StreamReader sr = new StreamReader(sourceFile, Encoding.GetEncoding("utf-8"));
+            JObject createBlobDictionary = new JObject {
+                new JProperty("content", sr.ReadToEnd()),
+                new JProperty("encoding", "utf-8")
+            };
+            string createBlobBody = createBlobDictionary.ToString(Newtonsoft.Json.Formatting.None);
+            string blob_sha = JObject.Parse(Post(url_createBlob, createBlobBody))["sha"].ToString();
+
+            //JArray jarray = new JArray();
+            //jarray.Add(new JProperty("path", @"testinlineedit/node-azure-tools.md"));
+            //jarray.Add(new JProperty("mode", "100644"));
+            //jarray.Add(new JProperty("type", "blob"));
+            //jarray.Add(new JProperty("sha", blob_sha));
+
+            //JObject treeSubmitBody = new JObject()
+            //{
+            //    new JProperty("base_tree", baseTree_sha),
+            //    new JProperty("tree", jarray.ToString())
+            //};
+            CreateTreeRequest createTreeRequest = new CreateTreeRequest
+            {
+                BaseTree = baseTree_sha,
+                Tree = new TreeNode[] {
+                    new TreeNode{
+                        Path = @"node-azure-tools.md",
+                        Mode = "100644",
+                        Type = "blob",
+                        Sha = blob_sha
+                    }
+                }
+            };
+            string tmp = JsonConvert.SerializeObject(createTreeRequest);
+
+            string treeSubmit_sha = JObject.Parse(Post(url_createTree, tmp))["sha"].ToString();
+
+            JObject createCommitBody = new JObject()
+            {
+                new JProperty("message", "commit with Github API"),
+                new JProperty("parents", new string[]{parent_sha }),
+                new JProperty("tree", treeSubmit_sha)
+            };
+
+            string createSubmit_sha = JObject.Parse(Post(url_createCommit, createCommitBody.ToString(Newtonsoft.Json.Formatting.None)))["sha"].ToString();
+
+            JObject updateRef = new JObject()
+            {
+                new JProperty("sha", createSubmit_sha),
+                new JProperty("force", true)
+            };
+            string updateRef_res = Post(url_updateRef, updateRef.ToString(Newtonsoft.Json.Formatting.None)).ToString();
         }
 
         public static string Post(string url, string content)
@@ -132,24 +211,28 @@ namespace InlineEdit
             string result = "";
 
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
-
             req.Method = "POST";
             req.ContentType = "application/vnd.github.v3+json";
-            req.Headers.Add("Authorization", "token a4e00d95dd3c14b183a91a7595f5f51c37ca1ed5");
+            req.Headers.Add("Authorization", "token 3c226329898b7b08379e6eefe04532d40659bcf1");
             req.UserAgent = "Code Sample Web Client";
-
-            byte[] data = Encoding.UTF8.GetBytes(content);
-            req.ContentLength = data.Length;
-
-            using (Stream reqStream = req.GetRequestStream())
-
+            
+            using (var streamWriter = new StreamWriter(req.GetRequestStream()))
             {
-
-                reqStream.Write(data, 0, data.Length);
-
-                reqStream.Close();
-
+                streamWriter.Write(content);
             }
+            
+            //byte[] data = Encoding.UTF8.GetBytes(content);
+            //req.ContentLength = data.Length;
+
+            //using (Stream reqStream = req.GetRequestStream())
+
+            //{
+
+            //    reqStream.Write(data, 0, data.Length);
+
+            //    reqStream.Close();
+
+            //}
 
             HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
 
@@ -205,7 +288,7 @@ namespace InlineEdit
 
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(builder.ToString());
             req.ContentType = "application/vnd.github.v3+json";
-            req.Headers.Add("Authorization", "token a4e00d95dd3c14b183a91a7595f5f51c37ca1ed5");
+            req.Headers.Add("Authorization", "token 3c226329898b7b08379e6eefe04532d40659bcf1");
             req.UserAgent = "Code Sample Web Client";
             HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
 
