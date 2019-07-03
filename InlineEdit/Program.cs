@@ -16,12 +16,19 @@ namespace InlineEdit
     {
         private static string path = @"C:\Users\t-yucxu\Desktop\testInlineEdit\middlefile";
 
+        private static string url_fork = @"https://api.github.com/repos/Peachying/testinlineedit/forks";
+        private static string url_getRef = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/refs/heads/master";
+        private static string url_createBlob = @"https://api.github.com/repos/GraceXu96/tesinlineefit/git/blobs";
+        private static string url_craeteTree = @"https://api.github.com/repos/GraceXu96/tesinlineedit/git/trees";
+        private static string url_getCommit = @"https://api.github.com/repos/GraceXu96/testinlineedit/commits";
+        private static string url_createCommit = @"https://api.github.com/repos/GraceXu96/testinlineedit/inlineedit/git/commits";
+        private static string url_updateRef = @"https://api.github.com/repos/GraceXu96/git/refs/heads/master";
 
         static async Task Main(string[] args)
         {
             //batchPandoc();
             //modifyMdfile();
-            await PullRequestAsync();
+            PullRequest();
             Console.ReadKey();
         }
 
@@ -99,17 +106,23 @@ namespace InlineEdit
             fs1.Close();
         }
 
-        public static async Task PullRequestAsync()
+        public static void PullRequest()
         {
-            string url_fork = @"https://api.github.com/repos/Peachying/testinlineedit/forks";
-            string url_getRef = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/refs/heads/master";
-            string url_commit = @"https://api.github.com/repos/GraceXu96/testinlineedit/commits";
             Console.WriteLine("******************ResponseBody of commit***************************");
-            //string res = Post(url_fork, "");
+            string res = Post(url_fork, "");
             //string commitBody = @""
             //string res_commit = Post(url_commit, );
-            JObject res_getRef = JObject.Parse(Get(url_getRef, new Dictionary<string, string>()));
-            Console.WriteLine(res_getRef["object"]["sha"]);
+            //JObject ref_json = JObject.Parse(Get(url_getRef, new Dictionary<string, string>()));
+            //JToken sha = ref_json["object"]["sha"];
+
+            Console.WriteLine(res);
+        }
+
+        public static void Commit(string blob, string path)
+        {
+            //var commitSha, commitTreeSSha;
+            //commitSha = Get(url_getRef, )
+
         }
 
         public static string Post(string url, string content)
@@ -122,7 +135,7 @@ namespace InlineEdit
 
             req.Method = "POST";
             req.ContentType = "application/vnd.github.v3+json";
-            req.Headers.Add("Authorization", "token 912d1e8196047f74db2b9a66f08eb18ae7d705eb");
+            req.Headers.Add("Authorization", "token a4e00d95dd3c14b183a91a7595f5f51c37ca1ed5");
             req.UserAgent = "Code Sample Web Client";
 
             byte[] data = Encoding.UTF8.GetBytes(content);
@@ -192,6 +205,7 @@ namespace InlineEdit
 
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(builder.ToString());
             req.ContentType = "application/vnd.github.v3+json";
+            req.Headers.Add("Authorization", "token a4e00d95dd3c14b183a91a7595f5f51c37ca1ed5");
             req.UserAgent = "Code Sample Web Client";
             HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
 
