@@ -5,6 +5,10 @@ using System.IO;
 using System.Diagnostics;
 using Newtonsoft.Json.Linq;
 using System.Text;
+using Octokit;
+using FileMode = System.IO.FileMode;
+using System.Threading.Tasks;
+using System.Net;
 
 namespace InlineEdit
 {
@@ -13,10 +17,11 @@ namespace InlineEdit
         private static string path = @"C:\Users\t-yucxu\Desktop\testInlineEdit\middlefile";
 
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            batchPandoc();
-            modifyMdfile();
+            //batchPandoc();
+            //modifyMdfile();
+            await PullRequestAsync();
             Console.ReadKey();
         }
 
@@ -93,5 +98,131 @@ namespace InlineEdit
             sr_new.Close();
             fs1.Close();
         }
+
+        public static async Task PullRequestAsync()
+        {
+            string url_fork = @"https://api.github.com/repos/Peachying/testinlineedit/forks";
+            string url_getRef = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/refs/heads/master";
+            string url_commit = @"https://api.github.com/repos/GraceXu96/testinlineedit/commits";
+            Console.WriteLine("******************ResponseBody of commit***************************");
+            //string res = Post(url_fork, "");
+            //string commitBody = @""
+            //string res_commit = Post(url_commit, );
+            JObject res_getRef = JObject.Parse(Get(url_getRef, new Dictionary<string, string>()));
+            Console.WriteLine(res_getRef["object"]["sha"]);
+        }
+
+        public static string Post(string url, string content)
+
+        {
+
+            string result = "";
+
+            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
+
+            req.Method = "POST";
+            req.ContentType = "application/vnd.github.v3+json";
+            req.Headers.Add("Authorization", "token 912d1e8196047f74db2b9a66f08eb18ae7d705eb");
+            req.UserAgent = "Code Sample Web Client";
+
+            byte[] data = Encoding.UTF8.GetBytes(content);
+            req.ContentLength = data.Length;
+
+            using (Stream reqStream = req.GetRequestStream())
+
+            {
+
+                reqStream.Write(data, 0, data.Length);
+
+                reqStream.Close();
+
+            }
+
+            HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
+
+            Stream stream = resp.GetResponseStream();           
+
+            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+
+            {
+
+                result = reader.ReadToEnd();
+
+            }
+
+            return result;
+
+        }
+
+
+    
+        public static string Get(string url, Dictionary<string, string> dic)
+
+        {
+
+            string result = "";
+
+            StringBuilder builder = new StringBuilder();
+
+            builder.Append(url);
+
+            if (dic.Count > 0)
+
+            {
+
+                builder.Append("?");
+
+                int i = 0;
+
+                foreach (var item in dic)
+
+                {
+
+                    if (i > 0)
+
+                        builder.Append("&");
+
+                    builder.AppendFormat("{0}={1}", item.Key, item.Value);
+
+                    i++;
+
+                }
+
+            }
+
+            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(builder.ToString());
+            req.ContentType = "application/vnd.github.v3+json";
+            req.UserAgent = "Code Sample Web Client";
+            HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
+
+            Stream stream = resp.GetResponseStream();
+
+            try
+
+            {
+
+                using (StreamReader reader = new StreamReader(stream))
+
+                {
+
+                    result = reader.ReadToEnd();
+
+                }
+
+            }
+
+            finally
+
+            {
+
+                stream.Close();
+
+            }
+
+            return result;
+
+        }
+
+
     }
 }

@@ -1,14 +1,15 @@
 {
   "runtimeTarget": {
     "name": ".NETCoreApp,Version=v2.1",
-    "signature": "4bf20b3f4b187ddd01af96ea47dda577c5263775"
+    "signature": "72834cb70236c2f9ed78dd74a4edf866a7f921ce"
   },
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v2.1": {
       "InlineEdit/1.0.0": {
         "dependencies": {
-          "Newtonsoft.Json": "12.0.2"
+          "Newtonsoft.Json": "12.0.2",
+          "Octokit": "0.32.0"
         },
         "runtime": {
           "InlineEdit.dll": {}
@@ -19,6 +20,14 @@
           "lib/netstandard2.0/Newtonsoft.Json.dll": {
             "assemblyVersion": "12.0.0.0",
             "fileVersion": "12.0.2.23222"
+          }
+        }
+      },
+      "Octokit/0.32.0": {
+        "runtime": {
+          "lib/netstandard1.1/Octokit.dll": {
+            "assemblyVersion": "0.32.0.0",
+            "fileVersion": "0.32.0.0"
           }
         }
       }
@@ -36,6 +45,13 @@
       "sha512": "sha512-rTK0s2EKlfHsQsH6Yx2smvcTCeyoDNgCW7FEYyV01drPlh2T243PR2DiDXqtC5N4GDm4Ma/lkxfW5a/4793vbA==",
       "path": "newtonsoft.json/12.0.2",
       "hashPath": "newtonsoft.json.12.0.2.nupkg.sha512"
+    },
+    "Octokit/0.32.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-g6fG2fJbgmjb/OXyXquCKQpKPqEtoUajNGb+mdD9wb47px8SURnxADX6azujc4tKR0uUCNkrHLYvERwl02pbYw==",
+      "path": "octokit/0.32.0",
+      "hashPath": "octokit.0.32.0.nupkg.sha512"
     }
   }
 }
