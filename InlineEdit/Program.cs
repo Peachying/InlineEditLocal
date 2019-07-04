@@ -9,35 +9,13 @@ using Octokit;
 using FileMode = System.IO.FileMode;
 using System.Threading.Tasks;
 using System.Net;
+using InlineEdit.JsonEntities;
+using System.Data.SqlTypes;
 
 namespace InlineEdit
 {
-    public class CreateTreeRequest {
-        [JsonProperty("base_tree")]
-        public string BaseTree { get; set; }
-        [JsonProperty("tree")]
-        public TreeNode[] Tree { get; set; }
-    }
-
-    public class TreeNode {
-        [JsonProperty("path")]
-        public string Path { get; set; }
-        [JsonProperty("mode")]
-        public string Mode { get; set; }
-        [JsonProperty("type")]
-        public string Type { get; set; }
-        [JsonProperty("sha")]
-        public string Sha { get; set; }
-    }
-
-    public class CreatePullRequest {
-        [JsonProperty("title")]
-        public string Title { get; set; }
-        [JsonProperty("head")]
-        public string Head { get; set; }
-        [JsonProperty("base")]
-        public string Base { get; set; }
-    }
+      
+    
     class Program
     {
         private static string path = @"C:\Users\t-yucxu\Desktop\testInlineEdit\middlefile";
@@ -50,12 +28,13 @@ namespace InlineEdit
         private static string url_getCommit = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/commits/";
         private static string url_createCommit = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/commits";
         private static string url_updateRef = @"https://api.github.com/repos/GraceXu96/testinlineedit/git/refs/heads/master";
-        private static string url_pullRequest = @"https://api.github.com/repos/GraceXu96/testinlineedit/pulls";
+        private static string url_pullRequest = @"https://api.github.com/repos/Peachying/testinlineedit/pulls";
 
         static async Task Main(string[] args)
         {
             //batchPandoc();
             //modifyMdfile();
+            Commit();
             PullRequest();
             Console.ReadKey();
         }
@@ -105,7 +84,8 @@ namespace InlineEdit
                 Console.WriteLine(@"Startline is {0}, endline is {1}, origin_url is {2}", fragInfo["startline"], fragInfo["endline"], fragInfo["origin_url"]);
             }
         }
-        public static void EditFile(int startLine, int endLine, string sourcePath, string newPath)
+
+        private static void EditFile(int startLine, int endLine, string sourcePath, string newPath)
         {
             StreamReader sr_new = new StreamReader(newPath);
             string newLines = sr_new.ReadToEnd().Replace("\r\n", " ");
@@ -133,44 +113,38 @@ namespace InlineEdit
             fs1.Close();
         }
 
-        public static void PullRequest()
+        private static void PullRequest()
         {
             CreatePullRequest pullRequestBody = new CreatePullRequest
             {
                 Title = "test PR with Github API",
-                Head = "master",
-                Base = "master"
+                Head = "GraceXu96:master",
+                Base = "master",
+                Body = "Please pull this in!"
             };
             string reqBody = JsonConvert.SerializeObject(pullRequestBody);
             string pr_res = JObject.Parse(Post(url_pullRequest, reqBody)).ToString();
             Console.WriteLine(pr_res);
         }
 
-        public static void Commit(string blob, string path)
+        private static void Commit()
         {
             Console.WriteLine("******************Six steps for Commit***************************");
+            //get reference & tree to commit 
             string parent_sha = JObject.Parse(Get(url_getRef, new Dictionary<string, string>()))["object"]["sha"].ToString();
             string baseTree_sha = JObject.Parse(Get(url_getCommit + parent_sha, new Dictionary<string, string>()))["tree"]["sha"].ToString();
 
+            //create a  blob
             StreamReader sr = new StreamReader(sourceFile, Encoding.GetEncoding("utf-8"));
-            JObject createBlobDictionary = new JObject {
-                new JProperty("content", sr.ReadToEnd()),
-                new JProperty("encoding", "utf-8")
+            CreateBlobRequest createBlobRequest = new CreateBlobRequest
+            {
+                Content = sr.ReadToEnd(),
+                Encoding = "utf-8"
             };
-            string createBlobBody = createBlobDictionary.ToString(Newtonsoft.Json.Formatting.None);
+            string createBlobBody = JsonConvert.SerializeObject(createBlobRequest);
             string blob_sha = JObject.Parse(Post(url_createBlob, createBlobBody))["sha"].ToString();
 
-            //JArray jarray = new JArray();
-            //jarray.Add(new JProperty("path", @"testinlineedit/node-azure-tools.md"));
-            //jarray.Add(new JProperty("mode", "100644"));
-            //jarray.Add(new JProperty("type", "blob"));
-            //jarray.Add(new JProperty("sha", blob_sha));
-
-            //JObject treeSubmitBody = new JObject()
-            //{
-            //    new JProperty("base_tree", baseTree_sha),
-            //    new JProperty("tree", jarray.ToString())
-            //};
+            //create a new tree for commit
             CreateTreeRequest createTreeRequest = new CreateTreeRequest
             {
                 BaseTree = baseTree_sha,
@@ -183,143 +157,90 @@ namespace InlineEdit
                     }
                 }
             };
-            string tmp = JsonConvert.SerializeObject(createTreeRequest);
+            string createTreeBody = JsonConvert.SerializeObject(createTreeRequest);
+            string treeSubmit_sha = JObject.Parse(Post(url_createTree, createTreeBody))["sha"].ToString();
 
-            string treeSubmit_sha = JObject.Parse(Post(url_createTree, tmp))["sha"].ToString();
-
-            JObject createCommitBody = new JObject()
+            //create a  new commit
+            CreateCommitRequest createCommitRequest = new CreateCommitRequest
             {
-                new JProperty("message", "commit with Github API"),
-                new JProperty("parents", new string[]{parent_sha }),
-                new JProperty("tree", treeSubmit_sha)
+                Message = "Commit automatically!",
+                Parents = new string[] { parent_sha },
+                Tree = treeSubmit_sha
             };
+            string createCommitBody = JsonConvert.SerializeObject(createCommitRequest);
+            string createSubmit_sha = JObject.Parse(Post(url_createCommit, createCommitBody))["sha"].ToString();
 
-            string createSubmit_sha = JObject.Parse(Post(url_createCommit, createCommitBody.ToString(Newtonsoft.Json.Formatting.None)))["sha"].ToString();
-
-            JObject updateRef = new JObject()
-            {
-                new JProperty("sha", createSubmit_sha),
-                new JProperty("force", true)
+            //update reference
+            UpdateReferenceRequest updateReferenceRequest = new UpdateReferenceRequest {
+                Sha = createSubmit_sha,
+                Force = true
             };
-            string updateRef_res = Post(url_updateRef, updateRef.ToString(Newtonsoft.Json.Formatting.None)).ToString();
+            string updateReferenceBody = JsonConvert.SerializeObject(updateReferenceRequest);
+            string updateRef_res = Post(url_updateRef, updateReferenceBody).ToString();
         }
 
-        public static string Post(string url, string content)
-
+        private static string Post(string url, string content)
         {
-
             string result = "";
-
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
             req.Method = "POST";
             req.ContentType = "application/vnd.github.v3+json";
-            req.Headers.Add("Authorization", "token 3c226329898b7b08379e6eefe04532d40659bcf1");
-            req.UserAgent = "Code Sample Web Client";
-            
+            req.Headers.Add("Authorization", "token b908f03792a8a7e90b924d6b643e87b2ad14d69b");
+            req.UserAgent = "Code Sample Web Client";            
             using (var streamWriter = new StreamWriter(req.GetRequestStream()))
             {
                 streamWriter.Write(content);
-            }
-            
-            //byte[] data = Encoding.UTF8.GetBytes(content);
-            //req.ContentLength = data.Length;
-
-            //using (Stream reqStream = req.GetRequestStream())
-
-            //{
-
-            //    reqStream.Write(data, 0, data.Length);
-
-            //    reqStream.Close();
-
-            //}
+            }                      
 
             HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
-
             Stream stream = resp.GetResponseStream();           
-
             using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
-
             {
-
                 result = reader.ReadToEnd();
-
             }
-
             return result;
-
         }
 
 
     
-        public static string Get(string url, Dictionary<string, string> dic)
-
+        private static string Get(string url, Dictionary<string, string> dic)
         {
-
             string result = "";
-
             StringBuilder builder = new StringBuilder();
-
             builder.Append(url);
 
             if (dic.Count > 0)
-
             {
-
                 builder.Append("?");
-
                 int i = 0;
-
                 foreach (var item in dic)
-
                 {
-
                     if (i > 0)
-
                         builder.Append("&");
-
                     builder.AppendFormat("{0}={1}", item.Key, item.Value);
-
                     i++;
-
                 }
-
             }
 
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(builder.ToString());
             req.ContentType = "application/vnd.github.v3+json";
-            req.Headers.Add("Authorization", "token 3c226329898b7b08379e6eefe04532d40659bcf1");
+            req.Headers.Add("Authorization", "token b908f03792a8a7e90b924d6b643e87b2ad14d69b");
             req.UserAgent = "Code Sample Web Client";
             HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
 
             Stream stream = resp.GetResponseStream();
-
             try
-
             {
-
                 using (StreamReader reader = new StreamReader(stream))
-
                 {
-
                     result = reader.ReadToEnd();
-
                 }
-
             }
-
             finally
-
             {
-
                 stream.Close();
-
             }
-
             return result;
-
         }
-
-
     }
 }
