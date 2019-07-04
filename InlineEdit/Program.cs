@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Net;
 using InlineEdit.JsonEntities;
 using System.Data.SqlTypes;
+using System.Text.RegularExpressions;
 
 namespace InlineEdit
 {
@@ -32,8 +33,8 @@ namespace InlineEdit
 
         static async Task Main(string[] args)
         {
-            //batchPandoc();
-            //modifyMdfile();
+            batchPandoc();
+            modifyMdfile();
             Commit();
             PullRequest();
             Console.ReadKey();
@@ -46,13 +47,29 @@ namespace InlineEdit
             string[] filenames = Directory.GetFiles(path, "*.html");
             foreach (string file in filenames)
             {
+                removeHtmlTags(file);
                 string exec = head + file + tail + file.Substring(file.IndexOf("_") + 1, 1) + ".md\n";
                 RunCmd(exec);
+                Console.WriteLine("Convert all fragile html files to md");
             }
         }
-        public static void RunCmd(string cmd)
+        public static void removeHtmlTags(string file) {
+            StreamReader sr = new StreamReader(file);
+            string content = sr.ReadToEnd();
+            sr.Close();
+            //content = content.Replace("<del[^>]*?>[\\s\\S]*?<\\/del>", "");
+            //content = content.Replace("<\\/?ins.*?>", "");
+            string regex_del = @"<del[^>]*?>.*?</del>";
+            string regex_ins = @"<\/?ins.*?>";
+            content = Regex.Replace(content, regex_del, string.Empty, RegexOptions.IgnoreCase);
+            content = Regex.Replace(content, regex_ins, string.Empty, RegexOptions.IgnoreCase);
+            StreamWriter sw = new StreamWriter(file);
+            sw.WriteLine(content);
+            sw.Close();
+        }
+        private static void RunCmd(string cmd)
         {
-            cmd = cmd.Trim().TrimEnd('&') + "&exit";
+            cmd = cmd.Trim().TrimEnd('&') + " & exit";
             Process p = new Process();
             p.StartInfo.FileName = "cmd.exe";
             p.StartInfo.UseShellExecute = false;
@@ -72,17 +89,18 @@ namespace InlineEdit
 
         public static void modifyMdfile() {
             StreamReader sr = new StreamReader(path + @"\editinfo.txt");
-            string infoStr = sr.ReadToEnd();
-            JArray infoArray = (JArray)JsonConvert.DeserializeObject(infoStr);
+            string infoStr = sr.ReadToEnd();            
+            var infoArray = JsonConvert.DeserializeObject<FragInfo[]>(infoStr);
             int fileNum = 0;
-            foreach (Object info in infoArray)
+            foreach (FragInfo info in infoArray)
             {
-                string fragFile = path + @"\frag_" + fileNum + @".md";
+                string fragFile = path + @"\frag_" + fileNum + @".md";          
+                
+                EditFile(info.StartLine, info.Endline, sourceFile, fragFile);
                 fileNum += 1;
-                JObject fragInfo = (JObject)info;
-                EditFile((int)fragInfo["startline"], (int)fragInfo["endline"], sourceFile, fragFile);
-                Console.WriteLine(@"Startline is {0}, endline is {1}, origin_url is {2}", fragInfo["startline"], fragInfo["endline"], fragInfo["origin_url"]);
+                Console.WriteLine();
             }
+            Console.WriteLine("Replace modified parts in the original md file");
         }
 
         private static void EditFile(int startLine, int endLine, string sourcePath, string newPath)
@@ -185,7 +203,7 @@ namespace InlineEdit
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
             req.Method = "POST";
             req.ContentType = "application/vnd.github.v3+json";
-            req.Headers.Add("Authorization", "token b908f03792a8a7e90b924d6b643e87b2ad14d69b");
+            req.Headers.Add("Authorization", "token 57e3bfc1aa9a2049d9524bd7b3aa248a223e400c");
             req.UserAgent = "Code Sample Web Client";            
             using (var streamWriter = new StreamWriter(req.GetRequestStream()))
             {
@@ -224,7 +242,7 @@ namespace InlineEdit
 
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(builder.ToString());
             req.ContentType = "application/vnd.github.v3+json";
-            req.Headers.Add("Authorization", "token b908f03792a8a7e90b924d6b643e87b2ad14d69b");
+            req.Headers.Add("Authorization", "token 57e3bfc1aa9a2049d9524bd7b3aa248a223e400c");
             req.UserAgent = "Code Sample Web Client";
             HttpWebResponse resp = (HttpWebResponse)req.GetResponse();
 
